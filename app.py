@@ -1,58 +1,25 @@
+import configparser
 from datetime import datetime, timezone
 
-import psycopg2 as pq
 from flask import Flask, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from flask_sqlalchemy import SQLAlchemy
+
+from models import *
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:1234@localhost:5432/flask_db"
-app.secret_key = "super secret key"
+config = configparser.ConfigParser()
+config.read('ini/example.ini')
 
-db = SQLAlchemy(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = config['app']['db_url']
+app.secret_key = config['app']['secret_key']
+
+db.init_app(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-
-def get_db_connection():
-    try:
-        conn = pq.connect(host="localhost",
-                          database="flask_db",
-                          user="postgres",
-                          password="1234")
-    except (Exception, pq.Error) as error:
-        return jsonify(error)
-
-    return conn
-
-
-class User(db.Model):
-    user_id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String)
-    password = db.Column(db.String)
-    first_name = db.Column(db.String)
-    last_name = db.Column(db.String)
-
-    def to_json(self):
-        return {"first_name": self.first_name,
-                "last_name": self.last_name,
-                "email": self.email}
-
-    def is_authenticated(self):
-        return True
-
-    def is_active(self):
-        return True
-
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        return (self.user_id)
 
 
 @login_manager.user_loader
@@ -62,7 +29,7 @@ def load_user(user_id):
 
 @app.route('/movies', methods=['GET'])
 def movies():
-    conn = get_db_connection()
+    conn = db.engine.raw_connection()
     cur = conn.cursor()
     sql = 'SELECT title FROM movie;'
     cur.execute(sql)
@@ -76,9 +43,9 @@ def movies():
 def categories():
     category = request.args["category"]
 
-    conn = get_db_connection()
+    conn = db.engine.raw_connection()
     cur = conn.cursor()
-    sql = 'SELECT genre_id FROM genre WHERE genres = %s;'
+    sql = 'SELECT genre_id FROM genre WHERE genre = %s;'
     cur.execute(sql, (category,))
     genre_id = cur.fetchone()
 
@@ -99,7 +66,7 @@ def categories():
 def navigate():
     title = request.args["title"]
 
-    conn = get_db_connection()
+    conn = db.engine.raw_connection()
     cur = conn.cursor()
     sql = 'SELECT * FROM movie WHERE title = %s;'
 
@@ -133,7 +100,7 @@ def create_user():
     first_name = request.form["first_name"]
     last_name = request.form["last_name"]
 
-    conn = get_db_connection()
+    conn = db.engine.raw_connection()
     cur = conn.cursor()
 
     sql = 'INSERT INTO "user" (email, password, first_name, last_name) VALUES (%s, %s, %s, %s)'
@@ -169,7 +136,7 @@ def logout():
 def rent():
     title = request.form["title"]
 
-    conn = get_db_connection()
+    conn = db.engine.raw_connection()
     cur = conn.cursor()
     sql = 'SELECT movie_id FROM movie WHERE title = %s'
     cur.execute(sql, (title,))
