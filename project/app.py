@@ -5,6 +5,7 @@ from functools import wraps
 import jwt
 from flask import Flask, jsonify, request, make_response
 from flask_bcrypt import Bcrypt
+from flask_migrate import Migrate
 
 from models import *
 
@@ -16,6 +17,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config['app']['db_url']
 app.secret_key = config['app']['secret_key']
 
 db.init_app(app)
+Migrate(app, db)
 bcrypt = Bcrypt(app)
 
 
@@ -192,7 +194,7 @@ def rent(current_user):
 
 @app.route('/get_charge', methods=['GET'])
 @token_required
-def rent(current_user):
+def get_charge(current_user):
     title = request.form["title"]
 
     conn = db.engine.raw_connection()

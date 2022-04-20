@@ -1,4 +1,4 @@
-from app import db
+from project import db
 from models import Movie, Genre, MovieGenre, User, Rental
 from read_dataset import read_dataset
 
