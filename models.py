@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
+# Database ORMs
 class Movie(db.Model):
     movie_id = db.Column(db.Integer, primary_key=True)
     budget = db.Column(db.BigInteger)
@@ -31,8 +32,8 @@ class MovieGenre(db.Model):
 
 class User(db.Model):
     user_id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(50))
-    password = db.Column(db.Text)
+    email = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.Text, nullable=False)
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
 
@@ -51,7 +52,7 @@ class User(db.Model):
         return False
 
     def get_id(self):
-        return (self.user_id)
+        return self.user_id
 
 
 class Rental(db.Model):

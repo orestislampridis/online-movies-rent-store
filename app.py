@@ -1,9 +1,10 @@
 import configparser
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from functools import wraps
 
-from flask import Flask, jsonify, request
+import jwt
+from flask import Flask, jsonify, request, make_response
 from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 
 from models import *
 
@@ -17,88 +18,43 @@ app.secret_key = config['app']['secret_key']
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
 
+# decorator for verifying the JWT
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # jwt is passed in the request header
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token']
+        # return 401 if token is not passed
+        if not token:
+            return jsonify({'message': 'Token is missing !!'}), 401
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+        try:
+            # decoding the payload to fetch the stored details
+            data = jwt.decode(token, app.secret_key, algorithms=['HS256'])
+            current_user = User.query \
+                .filter_by(user_id=data['user_id']) \
+                .first()
+        except:
+            return jsonify({
+                'message': 'Token is invalid !!'
+            }), 401
+        # returns the current logged-in user
+        return f(current_user, *args, **kwargs)
 
-
-@app.route('/movies', methods=['GET'])
-def movies():
-    conn = db.engine.raw_connection()
-    cur = conn.cursor()
-    sql = 'SELECT title FROM movie;'
-    cur.execute(sql)
-    movie_titles = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify(movie_titles)
-
-
-@app.route('/categories', methods=['GET'])
-def categories():
-    category = request.args["category"]
-
-    conn = db.engine.raw_connection()
-    cur = conn.cursor()
-    sql = 'SELECT genre_id FROM genre WHERE genre = %s;'
-    cur.execute(sql, (category,))
-    genre_id = cur.fetchone()
-
-    sql = 'SELECT movie_id FROM movie_genre WHERE genre_id = %s;'
-    cur.execute(sql, (genre_id,))
-    movie_id = cur.fetchall()
-
-    sql = 'SELECT title FROM movie WHERE movie_id = ANY(%s);'
-    cur.execute(sql, (movie_id,))
-
-    movie_titles = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify(movie_titles)
-
-
-@app.route('/navigate', methods=['GET'])
-def navigate():
-    title = request.args["title"]
-
-    conn = db.engine.raw_connection()
-    cur = conn.cursor()
-    sql = 'SELECT * FROM movie WHERE title = %s;'
-
-    cur.execute(sql, (title,))
-    results = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    dict = {
-        'budget': '${:,.0f}'.format(results[1]),
-        'genres': results[2],
-        'original_language': results[3],
-        'original_title': results[4],
-        'overview': results[5],
-        'popularity': results[6],
-        'release_date': results[7],
-        'revenue': '${:,.0f}'.format(results[8]),
-        'runtime': str(int(results[9])) + ' minutes',
-        'title': results[10],
-        'vote_average': results[11],
-        'vote_count': results[12]
-    }
-
-    return dict
+    return decorated
 
 
 @app.route('/create_user', methods=['POST'])
 def create_user():
-    email = request.form["email"]
-    password = bcrypt.generate_password_hash(request.form["password"]).decode('utf-8')
-    first_name = request.form["first_name"]
-    last_name = request.form["last_name"]
+    auth = request.form
+
+    email = auth.get("email")
+    password = bcrypt.generate_password_hash(auth.get("password")).decode('utf-8')
+    first_name = auth.get("first_name")
+    last_name = auth.get("last_name")
 
     conn = db.engine.raw_connection()
     cur = conn.cursor()
@@ -110,30 +66,109 @@ def create_user():
 
     cur.close()
     conn.close()
-    return jsonify('User succesfully created!')
+    return make_response('User successfully created!', 201)
 
 
 @app.route('/login', methods=['POST'])
 def login():
-    user = User.query.filter_by(email=request.form["email"]).first()
-    if user:
-        if bcrypt.check_password_hash(user.password, request.form["password"]):
-            login_user(user)
-            return jsonify(user.to_json())
+    auth = request.form
 
-    return jsonify('Failed!')
+    if not auth or not auth.get('email') or not auth.get('password'):
+        # returns 401 if any email or / and password is missing
+        return make_response(
+            'Could not verify',
+            401,
+            {'WWW-Authenticate': 'Basic realm ="Login required !!"'}
+        )
+
+    user = User.query.filter_by(email=auth.get("email")).first()
+
+    if not user:
+        # returns 401 if user does not exist
+        return make_response(
+            'Could not verify',
+            401,
+            {'WWW-Authenticate': 'Basic realm ="User does not exist !!"'}
+        )
+
+    if bcrypt.check_password_hash(user.password, request.form["password"]):
+        token = jwt.encode({
+            'user_id': user.user_id,
+            'exp': datetime.utcnow() + timedelta(minutes=30)
+        }, app.secret_key)
+
+        return make_response(jsonify({'token': token}), 201)
+
+    # returns 403 if password is wrong
+    return make_response(
+        'Could not verify',
+        403,
+        {'WWW-Authenticate': 'Basic realm ="Wrong Password !!"'})
 
 
-@app.route('/logout', methods=['GET', 'POST'])
-@login_required
-def logout():
-    logout_user()
-    return jsonify('User succesfully logged out!')
+@app.route('/get_all_movie_titles', methods=['GET'])
+@token_required
+def movies(current_user):
+    movies = Movie.query.all()
+
+    output = []
+    for movie in movies:
+        output.append({
+            'movie_id': movie.movie_id,
+            'title': movie.title
+        })
+
+    return jsonify({'movies': output})
+
+
+@app.route('/get_movies_by_category', methods=['GET'])
+@token_required
+def categories(current_user):
+    auth = request.args
+    genre = Genre.query.filter_by(genre=auth.get("category")).first()
+
+    movie_genres = MovieGenre.query.filter_by(genre_id=genre.genre_id)
+
+    output = []
+    for movie_genre in movie_genres:
+        movie = Movie.query.filter_by(movie_id=movie_genre.movie_id).first()
+
+        output.append({
+            'movie_id': movie.movie_id,
+            'title': movie.title
+        })
+
+    return jsonify({'movies': output})
+
+
+@app.route('/navigate', methods=['GET'])
+@token_required
+def navigate(current_user):
+    title = request.args["title"]
+
+    movie = Movie.query.filter_by(title=title).first()
+
+    output = {
+        'budget': '${:,.0f}'.format(movie.budget),
+        'genres': movie.genres,
+        'original_language': movie.original_language,
+        'original_title': movie.original_title,
+        'overview': movie.overview,
+        'popularity': movie.popularity,
+        'release_date': movie.release_date,
+        'revenue': '${:,.0f}'.format(movie.revenue),
+        'runtime': str(int(movie.runtime)) + ' minutes',
+        'title': movie.title,
+        'vote_average': movie.vote_average,
+        'vote_count': movie.vote_count
+    }
+
+    return output
 
 
 @app.route('/rent', methods=['POST'])
-@login_required
-def rent():
+@token_required
+def rent(current_user):
     title = request.form["title"]
 
     conn = db.engine.raw_connection()
@@ -141,19 +176,42 @@ def rent():
     sql = 'SELECT movie_id FROM movie WHERE title = %s'
     cur.execute(sql, (title,))
 
-    if current_user.is_authenticated():
-        movie_id = cur.fetchone()[0]
-        user_id = current_user.get_id()
-        time_now = datetime.now(timezone.utc)
+    movie_id = cur.fetchone()[0]
+    user_id = current_user.user_id
+    time_now = datetime.now(timezone.utc)
 
-        sql = 'INSERT INTO rental (movie_id, user_id, date_start) VALUES (%s, %s, %s)'
-        cur.execute(sql, (movie_id, user_id, time_now))
+    sql = 'INSERT INTO rental (movie_id, user_id, date_start, paid) VALUES (%s, %s, %s, %s)'
+    cur.execute(sql, (movie_id, user_id, time_now, False))
 
     conn.commit()
 
     cur.close()
     conn.close()
-    return jsonify('Movie ' + str(movie_id) + ' succesfully rented!')
+    return jsonify('Movie ' + str(movie_id) + ' successfully rented!')
+
+
+@app.route('/get_charge', methods=['GET'])
+@token_required
+def rent(current_user):
+    title = request.form["title"]
+
+    conn = db.engine.raw_connection()
+    cur = conn.cursor()
+    sql = 'SELECT movie_id FROM movie WHERE title = %s'
+    cur.execute(sql, (title,))
+
+    movie_id = cur.fetchone()[0]
+    user_id = current_user.user_id
+    time_now = datetime.now(timezone.utc)
+
+    sql = 'INSERT INTO rental (movie_id, user_id, date_start, paid) VALUES (%s, %s, %s, %s)'
+    cur.execute(sql, (movie_id, user_id, time_now, False))
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+    return jsonify('Movie ' + str(movie_id) + ' successfully rented!')
 
 
 if __name__ == '__main__':

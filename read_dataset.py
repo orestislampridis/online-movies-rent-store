@@ -36,7 +36,7 @@ def read_dataset(path_prefix):
 
     # Splitting the 'genres' column
     movie_df.loc[:, 'genres'] = movie_df['genres'].apply(lambda x: [i['name'] for i in ast.literal_eval(x)])
-    movie_df['genres'] = [','.join(map(str, l)) for l in movie_df['genres']]
+    movie_df['genres'] = [','.join(map(str, genre)) for genre in movie_df['genres']]
     temp_df = movie_df.copy()
 
     s = temp_df['genres'].str.split(',').apply(Series, 1).stack()
