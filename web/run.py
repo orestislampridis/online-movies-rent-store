@@ -1,4 +1,4 @@
-from project import app
+from project import app, db
 import os
 
 # Use the following command to run the app on debug mode

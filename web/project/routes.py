@@ -94,9 +94,23 @@ def login():
         {'WWW-Authenticate': 'Basic realm ="Wrong Password !!"'})
 
 
+@app.route('/get_all_users', methods=['GET'])
+def get_all_users():
+    users = User.query.all()
+
+    output = []
+    for user in users:
+        output.append({
+            'user_id': user.user_id,
+            'email': user.email
+        })
+
+    return jsonify({'users': output})
+
+
 @app.route('/get_all_movie_titles', methods=['GET'])
 @token_required
-def movies(current_user):
+def get_movies(current_user):
     movies = Movie.query.all()
 
     output = []
@@ -111,7 +125,7 @@ def movies(current_user):
 
 @app.route('/get_movies_by_category', methods=['GET'])
 @token_required
-def categories(current_user):
+def get_movies_by_categories(current_user):
     auth = request.args
     genre = Genre.query.filter_by(genre=auth.get("category")).first()
 
