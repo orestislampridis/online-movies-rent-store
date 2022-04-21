@@ -32,7 +32,7 @@ First, please use git clone to get a copy of the repo:
 
 ## Run the app
 
-After ensuring you have Docker installed, simply run:
+After ensuring you have the latest Docker version installed, enter the cloned dir and simply run:
 
     docker-compose up --build -d
 
@@ -56,7 +56,7 @@ The REST API to the app is described in detail below.
         "email": "john@email.com",
         "password": "1234",
         "first_name": "john",
-        "last_name": "marston",
+        "last_name": "marston"
     }
 
 ### Success-Response
@@ -67,11 +67,17 @@ The REST API to the app is described in detail below.
         "ok": true
     }
 
-### Error 400
+### Error 4xx
 
     HTTP 400 BAD REQUEST
     {
-        "message": "User already exists!",
+        "message": "Current email already exists!",
+        "ok": False
+    }
+
+    HTTP 400 BAD REQUEST
+    {
+        "message": "email and / or password is missing",
         "ok": False
     }
 
@@ -95,6 +101,26 @@ The REST API to the app is described in detail below.
     {
         "ok": true,
         "token": "eJiOiOiJ1J9.ey1c22zh9.03Pbp-fbj7rZWPCy-rY2Da74FE"
+    }
+
+### Error 4xx
+
+    HTTP 400 BAD REQUEST
+    {
+        "message": "email and / or password is missing",
+        "ok": False
+    }
+
+    HTTP 403 FORBIDDEN
+    {
+        "message": "Could not verify. Incorrect password given",
+        "ok": False
+    }
+
+    HTTP 404 NOT FOUND
+    {
+        "message": "User does not exist",
+        "ok": False
     }
 
 ## Get list of all available movies
@@ -163,15 +189,13 @@ The REST API to the app is described in detail below.
         ]
     }
 
-### Error 400
+### Error 4xx
 
     HTTP 400 BAD REQUEST
     {
         "message": "Category parameter is missing",
         "ok": False
     }
-
-### Error 404
 
     HTTP 404 NOT FOUND
     {
@@ -216,15 +240,13 @@ The REST API to the app is described in detail below.
         "vote_count": 8428
     }
 
-### Error 400
+### Error 4xx
 
     HTTP 400 BAD REQUEST
     {
         "message": "Title parameter is missing",
         "ok": False
     }
-
-### Error 404
 
     HTTP 404 NOT FOUND
     {
@@ -259,7 +281,7 @@ The REST API to the app is described in detail below.
         "ok": true
     }
 
-### Error 400
+### Error 4xx
 
     HTTP 400 BAD REQUEST
     {
@@ -272,8 +294,6 @@ The REST API to the app is described in detail below.
         "message": "You are already renting this movie!",
         "ok": False
     }
-
-### Error 404
 
     HTTP 404 NOT FOUND
     {
@@ -308,15 +328,13 @@ The REST API to the app is described in detail below.
         "ok": true
     }
 
-### Error 400
+### Error 4xx
 
     HTTP 400 BAD REQUEST
     {
         "message": "Body title is missing",
         "ok": False
     }
-
-### Error 404
 
     HTTP 404 NOT FOUND
     {

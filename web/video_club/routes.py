@@ -61,7 +61,14 @@ def reinitialize_tables():
 
 @app.route('/create_user', methods=['POST'])
 def create_user():
-    auth = request.form
+    auth = request.json
+
+    if not auth or not auth.get('email') or not auth.get('password'):
+        # returns 400 if any email or / and password is missing
+        return make_response(
+            {'ok': False, 'message': 'email and / or password is missing'},
+            400
+        )
 
     email = auth.get("email")
     password = bcrypt.generate_password_hash(auth.get("password")).decode('utf-8')
@@ -72,7 +79,7 @@ def create_user():
 
     if user:
         # returns 400 if current user email already exists
-        return make_response({"ok": False, "message": "User already exists!"}, 400)
+        return make_response({"ok": False, "message": "Current email already exists!"}, 400)
 
     database.add_instance(User, email=email, password=password, first_name=first_name, last_name=last_name)
 
@@ -81,27 +88,25 @@ def create_user():
 
 @app.route('/login', methods=['POST'])
 def login():
-    auth = request.form
+    auth = request.json
 
     if not auth or not auth.get('email') or not auth.get('password'):
-        # returns 401 if any email or / and password is missing
+        # returns 400 if any email or / and password is missing
         return make_response(
-            'Could not verify',
-            401,
-            {'WWW-Authenticate': 'Basic realm ="Login required !!"'}
+            {'ok': False, 'message': 'email and / or password is missing'},
+            400
         )
 
     user = User.query.filter_by(email=auth.get("email")).first()
 
     if not user:
-        # returns 401 if user does not exist
+        # returns 404 if user does not exist
         return make_response(
-            'Could not verify',
-            401,
-            {'WWW-Authenticate': 'Basic realm ="User does not exist !!"'}
+            {'ok': False, 'message': 'User does not exist'},
+            404
         )
 
-    if bcrypt.check_password_hash(user.password, request.form["password"]):
+    if bcrypt.check_password_hash(user.password, auth.get("password")):
         token = jwt.encode({
             'user_id': user.user_id,
             'exp': datetime.utcnow() + timedelta(minutes=60)
@@ -111,9 +116,9 @@ def login():
 
     # returns 403 if password is wrong
     return make_response(
-        'Could not verify',
-        403,
-        {'WWW-Authenticate': 'Basic realm ="Wrong Password !!"'})
+        {'ok': False, 'message': 'Could not verify. Incorrect password given'},
+        403
+    )
 
 
 @app.route('/get_all_users', methods=['GET'])
@@ -227,7 +232,7 @@ def navigate(current_user):
 @app.route('/rent', methods=['POST'])
 @token_required
 def rent(current_user):
-    auth = request.form
+    auth = request.json
 
     if not auth or not auth.get('title'):
         # returns 400 if title is missing
@@ -288,7 +293,7 @@ def get_rentals(current_user):
 @app.route('/return_movie', methods=['POST'])
 @token_required
 def return_movie(current_user):
-    auth = request.form
+    auth = request.json
 
     if not auth or not auth.get('title'):
         # returns 400 if title is missing

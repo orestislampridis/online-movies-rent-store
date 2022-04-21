@@ -60,4 +60,3 @@ class Rental(db.Model):
     paid = db.Column(db.Boolean)
     date_start = db.Column(db.Date)
     date_end = db.Column(db.Date)
-
