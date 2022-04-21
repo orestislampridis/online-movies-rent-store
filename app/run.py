@@ -1,4 +1,4 @@
-from video_club import app, db
+from API import app, db
 import os
 
 if __name__ == '__main__':

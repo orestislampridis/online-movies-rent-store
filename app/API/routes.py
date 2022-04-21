@@ -3,13 +3,13 @@ from functools import wraps
 
 import jwt
 from flask import jsonify, request, make_response
-from video_club import app, bcrypt, database
-from video_club.database import commit_changes
-from video_club.models import Movie, User, Genre, MovieGenre, Rental
-from video_club import db
+from API import app, bcrypt, database
+from API.database import commit_changes
+from API.models import Movie, User, Genre, MovieGenre, Rental
+from API import db
 
 # decorator for verifying the JWT
-from video_club.read_dataset import read_dataset
+from API.read_dataset import read_dataset
 
 
 def token_required(f):
@@ -45,7 +45,7 @@ def create_tables():
 
     # Check if the existing movie table contain data, if not then initialize
     if len(db.session().query(Movie).all()) == 0:
-        movie_df, movie_genre_df, genre_df = read_dataset(path_prefix='video_club/dataset/tmdb_5000_movies.csv')
+        movie_df, movie_genre_df, genre_df = read_dataset(path_prefix='API/dataset/tmdb_5000_movies.csv')
 
         movie_df.to_sql(name='movie', con=db.engine, index_label='movie_id', if_exists='append', chunksize=1000)
         movie_genre_df.to_sql(name='movie_genre', con=db.engine, index='movie_id', if_exists='append', chunksize=1000)

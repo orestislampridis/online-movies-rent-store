@@ -1,4 +1,4 @@
-from video_club import db
+from API import db
 
 
 def get_all(model):

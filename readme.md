@@ -12,7 +12,7 @@ The app also utilizes JWT authentication. Thus, to use most request the user nee
 
 `nginx` contains the configuration used by the nginx container
 
-`web` contains the source code of the flask app
+`app` contains the source code of the flask app
 
 `docker-compose.yml` contains instructions used to build and connect the containers
 

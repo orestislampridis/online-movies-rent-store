@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 import os
 
 from flask_sqlalchemy import SQLAlchemy
-from video_club.config import DEV_DB, PROD_DB, SECRET_KEY
+from API.config import DEV_DB, PROD_DB, SECRET_KEY
 
 app = Flask(__name__)
 
@@ -20,4 +20,4 @@ db = SQLAlchemy(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-from video_club import routes
+from API import routes
