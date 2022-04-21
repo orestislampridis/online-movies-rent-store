@@ -1,352 +1,388 @@
 # Online Movies Rent Store REST API
 
-This is a proof of concept app of an online Video Club utilizing a RESTful API. Users can perform various requests in 
-order to search, rent and pay an online movie.
+This is a proof of concept app of an online Video Club utilizing a RESTful API. Users can register/login and perform
+various requests in
+order to search, rent and pay for an online movie.
 
-The app is built using Flask. It comprises three Docker containers included in Docker-Compose which is used to deploy the app. Gunicorn is used
-as a WSGI server and NGINX as a reverse proxy. Finally, Postgres is used as database.
+The app is built using Flask. It comprises three Docker containers included in Docker-Compose which is used to deploy
+the app. Gunicorn is used
+as a WSGI server and NGINX as a reverse proxy. Finally, PostgreSQL is used as database.
 
-`docker-compose.yml` contains the instructions used to build and connect the three containers
+The app also utilizes JWT authentication. Thus, to use most request the user needs to use an appropriate token.
+
+`nginx` contains the configuration used by the nginx container
+
+`web` contains the source code of the flask app
+
+`docker-compose.yml` contains instructions used to build and connect the containers
 
 `.env` contains environment variables that are passed to docker-compose
 
+## Dataset
+
+The dataset, located in `web\video_club\dataset\tmdb_5000_movies.csv` was taken from
+[Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata). It contains ~5,000 movies and after appropriate
+data cleaning and transformations, it is used to populate the database.
 
 ## Install
 
-First use 
+First, please use git clone to get a copy of the repo:
 
-Please ensure you have docker installed on your desktop. Then:
-
-    bundle install
+    git clone https://github.com/orestislampridis/online-movies-rent-store.git
 
 ## Run the app
 
-    unicorn -p 7000
+After ensuring you have Docker installed, simply run:
+
+    docker-compose up --build -d
 
 ## Run the tests
 
-    ./run-tests.sh
+    TODO
 
 # REST API
 
-The REST API to the example app is described below.
+The REST API to the app is described in detail below.
 
-## Get list of Things
-
-### Request
-
-`GET /thing/`
-
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/
-
-### Response
-
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:30 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 2
-
-    []
-
-## Create a new Thing
+## Create a new account
 
 ### Request
 
-`POST /thing/`
+`Post http://127.0.0.1/create_user`
 
-    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/thing
+### Body Example
 
-### Response
+    {
+        "email": "john@email.com",
+        "password": "1234",
+        "first_name": "john",
+        "last_name": "marston",
+    }
 
-    HTTP/1.1 201 Created
-    Date: Thu, 24 Feb 2011 12:36:30 GMT
-    Status: 201 Created
-    Connection: close
-    Content-Type: application/json
-    Location: /thing/1
-    Content-Length: 36
+### Success-Response
 
-    {"id":1,"name":"Foo","status":"new"}
+    HTTP 200 OK
+    {
+        "message": "User successfully created!",
+        "ok": true
+    }
 
-## Get a specific Thing
+### Error 400
 
-### Request
+    HTTP 400 BAD REQUEST
+    {
+        "message": "User already exists!",
+        "ok": False
+    }
 
-`GET /thing/id`
-
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
-
-### Response
-
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:30 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 36
-
-    {"id":1,"name":"Foo","status":"new"}
-
-## Get a non-existent Thing
+## Login
 
 ### Request
 
-`GET /thing/id`
+`Post http://127.0.0.1/login`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/9999
+### Body Example
 
-### Response
+    {
+        "email": "john@email.com",
+        "password": "1234"
+    }
 
-    HTTP/1.1 404 Not Found
-    Date: Thu, 24 Feb 2011 12:36:30 GMT
-    Status: 404 Not Found
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 35
+### Success-Response
 
-    {"status":404,"reason":"Not found"}
+    HTTP 201 CREATED
+    
+    {
+        "ok": true,
+        "token": "eJiOiOiJ1J9.ey1c22zh9.03Pbp-fbj7rZWPCy-rY2Da74FE"
+    }
 
-## Create another new Thing
-
-### Request
-
-`POST /thing/`
-
-    curl -i -H 'Accept: application/json' -d 'name=Bar&junk=rubbish' http://localhost:7000/thing
-
-### Response
-
-    HTTP/1.1 201 Created
-    Date: Thu, 24 Feb 2011 12:36:31 GMT
-    Status: 201 Created
-    Connection: close
-    Content-Type: application/json
-    Location: /thing/2
-    Content-Length: 35
-
-    {"id":2,"name":"Bar","status":null}
-
-## Get list of Things again
+## Get list of all available movies
 
 ### Request
 
-`GET /thing/`
+`GET http://127.0.0.1/get_all_movie_titles`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/
+### Header
 
-### Response
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
 
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:31 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 74
+### Success-Response
 
-    [{"id":1,"name":"Foo","status":"new"},{"id":2,"name":"Bar","status":null}]
+    HTTP 200 OK
+    
+    {
+    "movies": [
+        {
+            "movie_id": 0,
+            "title": "Avatar"
+        },
+        {
+            "movie_id": 1,
+            "title": "Pirates of the Caribbean: At World's End"
+        },
+        ...
+        ]
+    }
 
-## Change a Thing's state
-
-### Request
-
-`PUT /thing/:id/status/changed`
-
-    curl -i -H 'Accept: application/json' -X PUT http://localhost:7000/thing/1/status/changed
-
-### Response
-
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:31 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 40
-
-    {"id":1,"name":"Foo","status":"changed"}
-
-## Get changed Thing
+## Get list of available movies based on category
 
 ### Request
 
-`GET /thing/id`
+`GET http://127.0.0.1/get_movies_by_category?category=History`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
+### Header
 
-### Response
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
 
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:31 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 40
+### Parameters
 
-    {"id":1,"name":"Foo","status":"changed"}
+| Key        | Value    | Description                 |
+|:-----------|:---------|:----------------------------|
+| `category` | `string` | Category/genre of the movie |
 
-## Change a Thing
+### Success-Response
 
-### Request
+    HTTP 200 OK
+    
+    {
+    "movies": [
+        {
+            "movie_id": 109,
+            "title": "Pearl Harbor"
+        },
+        {
+            "movie_id": 111,
+            "title": "Alexander"
+        },
+        ...
+        ]
+    }
 
-`PUT /thing/:id`
+### Error 400
 
-    curl -i -H 'Accept: application/json' -X PUT -d 'name=Foo&status=changed2' http://localhost:7000/thing/1
+    HTTP 400 BAD REQUEST
+    {
+        "message": "Category parameter is missing",
+        "ok": False
+    }
 
-### Response
+### Error 404
 
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:31 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 41
+    HTTP 404 NOT FOUND
+    {
+        "message": "Genre does not exist",
+        "ok": False
+    }
 
-    {"id":1,"name":"Foo","status":"changed2"}
-
-## Attempt to change a Thing using partial params
-
-### Request
-
-`PUT /thing/:id`
-
-    curl -i -H 'Accept: application/json' -X PUT -d 'status=changed3' http://localhost:7000/thing/1
-
-### Response
-
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 41
-
-    {"id":1,"name":"Foo","status":"changed3"}
-
-## Attempt to change a Thing using invalid params
+## Navigate and get the details/info of a specific movie
 
 ### Request
 
-`PUT /thing/:id`
+`GET http://127.0.0.1/navigate?title=Pulp+Fiction`
 
-    curl -i -H 'Accept: application/json' -X PUT -d 'id=99&status=changed4' http://localhost:7000/thing/1
+### Header
 
-### Response
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
 
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 41
+### Parameters
 
-    {"id":1,"name":"Foo","status":"changed4"}
+| Key     | Value    | Description                             |
+|:--------|:---------|:----------------------------------------|
+| `title` | `string` | Title of the movie. Add '+' for spaces. |
 
-## Change a Thing using the _method hack
+### Success-Response
 
-### Request
+    HTTP 200 OK
+    
+    {
+        "budget": "$8,000,000",
+        "genres": "Thriller,Crime",
+        "original_language": "en",
+        "original_title": "Pulp Fiction",
+        "overview": "A burger-loving hit man, his philosophical partner, ...
+        "popularity": 121.463076,
+        "release_date": "1994-10-08",
+        "revenue": "$213,928,762",
+        "runtime": "154 minutes",
+        "title": "Pulp Fiction",
+        "vote_average": 8.3,
+        "vote_count": 8428
+    }
 
-`POST /thing/:id?_method=POST`
+### Error 400
 
-    curl -i -H 'Accept: application/json' -X POST -d 'name=Baz&_method=PUT' http://localhost:7000/thing/1
+    HTTP 400 BAD REQUEST
+    {
+        "message": "Title parameter is missing",
+        "ok": False
+    }
 
-### Response
+### Error 404
 
-    HTTP/1.1 200 OK
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 200 OK
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 41
+    HTTP 404 NOT FOUND
+    {
+        "message": "Movie does not exist",
+        "ok": False
+    }
 
-    {"id":1,"name":"Baz","status":"changed4"}
-
-## Change a Thing using the _method hack in the url
-
-### Request
-
-`POST /thing/:id?_method=POST`
-
-    curl -i -H 'Accept: application/json' -X POST -d 'name=Qux' http://localhost:7000/thing/1?_method=PUT
-
-### Response
-
-    HTTP/1.1 404 Not Found
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 404 Not Found
-    Connection: close
-    Content-Type: text/html;charset=utf-8
-    Content-Length: 35
-
-    {"status":404,"reason":"Not found"}
-
-## Delete a Thing
+## Rent a specific movie
 
 ### Request
 
-`DELETE /thing/id`
+`POST http://127.0.0.1/rent`
 
-    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/thing/1/
+### Header
 
-### Response
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
 
-    HTTP/1.1 204 No Content
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 204 No Content
-    Connection: close
+### Body Example
 
+    {
+        "title": "Pulp Fiction"
+    }
 
-## Try to delete same Thing again
+### Success-Response
 
-### Request
+    HTTP 200 OK
+    
+    {
+        "message": "Pulp Fiction successfully rented!",
+        "ok": true
+    }
 
-`DELETE /thing/id`
+### Error 400
 
-    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/thing/1/
+    HTTP 400 BAD REQUEST
+    {
+        "message": "Body title is missing",
+        "ok": False
+    }
 
-### Response
+    HTTP 400 BAD REQUEST
+    {
+        "message": "You are already renting this movie!",
+        "ok": False
+    }
 
-    HTTP/1.1 404 Not Found
-    Date: Thu, 24 Feb 2011 12:36:32 GMT
-    Status: 404 Not Found
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 35
+### Error 404
 
-    {"status":404,"reason":"Not found"}
+    HTTP 404 NOT FOUND
+    {
+        "message": "Movie does not exist",
+        "ok": False
+    }
 
-## Get deleted Thing
-
-### Request
-
-`GET /thing/1`
-
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
-
-### Response
-
-    HTTP/1.1 404 Not Found
-    Date: Thu, 24 Feb 2011 12:36:33 GMT
-    Status: 404 Not Found
-    Connection: close
-    Content-Type: application/json
-    Content-Length: 35
-
-    {"status":404,"reason":"Not found"}
-
-## Delete a Thing using the _method hack
+## Return a specific movie
 
 ### Request
 
-`DELETE /thing/id`
+`POST http://127.0.0.1/return_movie`
 
-    curl -i -H 'Accept: application/json' -X POST -d'_method=DELETE' http://localhost:7000/thing/2/
+### Header
 
-### Response
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
 
-    HTTP/1.1 204 No Content
-    Date: Thu, 24 Feb 2011 12:36:33 GMT
-    Status: 204 No Content
-    Connection: close
+### Body Example
 
+    {
+        "title": "Pulp Fiction"
+    }
+
+### Success-Response
+
+    HTTP 200 OK
+    
+    {
+        "message": "Pulp Fiction (rental id: 1) successfully returned!",
+        "ok": true
+    }
+
+### Error 400
+
+    HTTP 400 BAD REQUEST
+    {
+        "message": "Body title is missing",
+        "ok": False
+    }
+
+### Error 404
+
+    HTTP 404 NOT FOUND
+    {
+        "message": "You have not rented this movie!",
+        "ok": False
+    }
+
+    HTTP 404 NOT FOUND
+    {
+        "message": "Movie does not exist",
+        "ok": False
+    }
+
+## Get all rentals made by current user
+
+Note: Contains both paid and unpaid rentals
+
+### Request
+
+`GET http://127.0.0.1/get_rentals`
+
+### Header
+
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
+
+### Success-Response
+
+    HTTP 200 OK
+    
+    {
+    "rentals": [
+        {
+            "date_end": "Thu, 21 Apr 2022 00:00:00 GMT",
+            "date_start": "Thu, 21 Apr 2022 00:00:00 GMT",
+            "movie_id": 2573,
+            "paid": true,
+            "rental_id": 1,
+            "user_id": 1
+        },
+        ...
+        ]
+    }
+
+## Get the charge (“amount of money owed”) based on days
+
+Note: This is calculated by adding up the charge of all the movies the current
+user has not returned yet. The user is charged 1 euro per day for the first three days and 0,5 euro per
+day for the days after the first three.
+
+### Request
+
+`GET http://127.0.0.1/get_charge`
+
+### Header
+
+| Key              | Value    | Description                  |
+|:-----------------|:---------|:-----------------------------|
+| `x-access-token` | `string` | **Required**. Your JWT token |
+
+### Success-Response
+
+    HTTP 200 OK
+    
+    {
+        "charge": "€1.0"
+    }
 
