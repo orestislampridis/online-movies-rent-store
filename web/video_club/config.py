@@ -1,8 +1,5 @@
 import os
 
-# pg_user = 'postgres'
-# pg_pass = 'admin'
-# pg_dbname = 'flask_db'
 pg_user = os.environ.get('POSTGRES_USER')
 pg_pass = os.environ.get('POSTGRES_PASSWORD')
 pg_dbname = os.environ.get('POSTGRES_DB')

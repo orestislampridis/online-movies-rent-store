@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 COPY . /code/
 
-CMD gunicorn -b 0.0.0.0:5000 -w 3 run:app
+CMD gunicorn -b 0.0.0.0:5000 -w 3 -t 3 run:app

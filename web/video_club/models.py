@@ -1,6 +1,4 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from video_club import db
 
 
 # Database ORMs
@@ -61,3 +59,5 @@ class Rental(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     paid = db.Column(db.Boolean)
     date_start = db.Column(db.Date)
+    date_end = db.Column(db.Date)
+
