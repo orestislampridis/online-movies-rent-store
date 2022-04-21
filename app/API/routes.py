@@ -253,7 +253,7 @@ def rent(current_user):
     movie_id = movie.movie_id
     rental_movie_id = Rental.query.filter_by(movie_id=movie_id, user_id=current_user.user_id).first()
 
-    if rental_movie_id.paid is False:
+    if rental_movie_id is not None and rental_movie_id.paid is False:
         # returns 400 if current user has already rented the movie and hasn't paid for it
         return make_response(
             {'ok': False, 'message': 'You are already renting this movie!'},

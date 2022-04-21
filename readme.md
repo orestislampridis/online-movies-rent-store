@@ -14,9 +14,12 @@ The app also utilizes JWT authentication. Thus, to use most request the user nee
 
 `app` contains the source code of the flask app
 
+`tests` contains the unit tests
+
 `docker-compose.yml` contains instructions used to build and connect the containers
 
 `.env` contains environment variables that are passed to docker-compose
+
 
 ## Dataset
 
@@ -38,7 +41,10 @@ After ensuring you have the latest Docker version installed, enter the cloned di
 
 ## Run the tests
 
-    TODO
+Go inside the tests dir and run the following:
+
+    pip install unittest requests
+    python test_unittest_api.py    
 
 # REST API
 
@@ -61,7 +67,7 @@ The REST API to the app is described in detail below.
 
 ### Success-Response
 
-    HTTP 200 OK
+    HTTP 201 CREATED
     {
         "message": "User successfully created!",
         "ok": true
