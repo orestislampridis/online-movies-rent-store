@@ -43,7 +43,8 @@ After ensuring you have the latest Docker version installed, enter the cloned di
 
 Go inside the tests dir and run the following:
 
-    pip install unittest requests
+    pip install unittest
+    pip install requests
     python test_unittest_api.py    
 
 # REST API

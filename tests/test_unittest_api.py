@@ -16,14 +16,14 @@ class ApiTest(unittest.TestCase):
     GET_CHARGE_URL = '/get_charge'
 
     USER_OBJ = {
-        "email": "anna@email.com",
+        "email": "bob@email.com",
         "password": "1234",
         "first_name": "john",
         "last_name": "marston"
     }
 
     USER_OBJ_INCORRECT_PASSWORD = {
-        "email": "anna@email.com",
+        "email": "bob@email.com",
         "password": "12345"
     }
 
@@ -46,7 +46,7 @@ class ApiTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # code that is executed before all tests in one test run
+        r = requests.post(cls.API_URL + cls.CREATE_USER_URL, json=cls.USER_OBJ)
         pass
 
     @classmethod
@@ -59,13 +59,7 @@ class ApiTest(unittest.TestCase):
         time.sleep(0.5)
 
     # This test will either return 200 if run for the first time and afterwards 400 because
-    # the user will have already been inserted in the database. Thus, here I check for either
-    # of the two above scenarios by checking if the json returned contains both "message" and
-    # "ok" (see documentation on github for more information on /create_user)
-    def test_create_user(self):
-        r = requests.post(self.API_URL + self.CREATE_USER_URL, json=self.USER_OBJ)
-        self.assertEqual(len(r.json()), 2)
-
+    # the user will have already been inserted in the database.
     def test_create_user_exists(self):
         r = requests.post(self.API_URL + self.CREATE_USER_URL, json=self.USER_OBJ)
         self.assertEqual(r.status_code, 400)
