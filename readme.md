@@ -23,7 +23,7 @@ The app also utilizes JWT authentication. Thus, to use most request the user nee
 
 ## Dataset
 
-The dataset, located in `web\video_club\dataset\tmdb_5000_movies.csv` was taken from
+The dataset, located in `app\API\dataset\tmdb_5000_movies.csv` was taken from
 [Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata). It contains ~5,000 movies and after appropriate
 data cleaning and transformations, it is used to populate the database.
 
@@ -49,7 +49,7 @@ Go inside the tests dir and run the following:
 
 # REST API
 
-The REST API to the app is described in detail below.
+The REST API to the app is documented in detail below.
 
 ## Create a new account
 
